@@ -4,6 +4,12 @@
 #include <stdlib.h>
 
 
+const uint8_t SIGN_INDEX = 63;
+const uint8_t EXP_START_INDEX = 52;
+const uint8_t EXP_END_INDEX = 62;
+const uint8_t FRAC_START_INDEX = 0;
+const uint8_t FRAC_END_INDEX = 51;
+
 
 /**
  * Library-level functions.
@@ -15,7 +21,49 @@ uint64_t convertToUint64 (double number) {
 }
 
 bool getBit (const uint64_t number, const uint8_t index) {
-    /// Your code here...
+    return ((number >> index) & 1);
+}
+
+/**
+ * Utils functions
+ */
+
+bool checkForSign(uint64_t number) {
+    return getBit(number, SIGN_INDEX);
+}
+
+bool checkForAllZeroes(uint64_t number, uint8_t index_start, uint8_t index_end) {
+    bool result = true;
+    for (uint8_t index = index_start; index <= index_end; index++) {
+        result &= (!getBit(number, index));
+    }
+    return result;
+}
+
+bool checkForAllOnes(uint64_t number, uint8_t index_start, uint8_t index_end) {
+    bool result = true;
+    for (uint8_t index = index_start; index <= index_end; index++) {
+        result &= (getBit(number, index));
+    }
+    return result;
+}
+
+bool checkForDenormal(uint64_t number) {
+    return checkForAllZeroes(number, EXP_START_INDEX, EXP_END_INDEX);
+}
+
+bool checkForNormal(uint64_t number) {
+    return (
+        !checkForAllZeroes(number, EXP_START_INDEX, EXP_END_INDEX) && 
+        !checkForAllOnes(number, EXP_START_INDEX, EXP_END_INDEX)
+    );
+}
+
+bool checkForInf(uint64_t number) {
+    return (
+        checkForAllOnes(number, EXP_START_INDEX, EXP_END_INDEX) &&
+        checkForAllZeroes(number, FRAC_START_INDEX, FRAC_END_INDEX)
+    );
 }
 
 
@@ -24,7 +72,7 @@ bool getBit (const uint64_t number, const uint8_t index) {
  */
 
 bool checkForPlusZero (uint64_t number) {
-    /// Your code here.
+    return number == 0x0000000000000000;
 }
 
 bool checkForMinusZero (uint64_t number) {
@@ -32,35 +80,41 @@ bool checkForMinusZero (uint64_t number) {
 }
 
 bool checkForPlusInf (uint64_t number) {
-    /// Your code here.
+    return (checkForInf(number) && !checkForSign(number));
 }
 
 bool checkForMinusInf (uint64_t number) {
-    /// Your code here.
+    return (checkForInf(number) && checkForSign(number));
 }
 
 bool checkForPlusNormal (uint64_t number) {
-    /// Your code here.
+    return (!checkForSign(number) && checkForNormal(number));
 }
 
 bool checkForMinusNormal (uint64_t number) {
-    /// Your code here.
+    return (checkForSign(number) && checkForNormal(number));
 }
 
 bool checkForPlusDenormal (uint64_t number) {
-    /// Your code here.
+    return (!checkForSign(number) && checkForDenormal(number));
 }
 
 bool checkForMinusDenormal (uint64_t number) {
-    /// Your code here.
+   return (checkForSign(number) && checkForDenormal(number));
 }
 
 bool checkForSignalingNan (uint64_t number) {
-    /// Your code here.
+    return (
+        checkForAllOnes(number, EXP_START_INDEX, EXP_END_INDEX) && 
+        checkForAllZeroes(number, FRAC_END_INDEX, FRAC_END_INDEX)
+    );
 }
 
 bool checkForQuietNan (uint64_t number) {
-    /// Your code here.
+   return (
+        checkForAllOnes(number, EXP_START_INDEX, EXP_END_INDEX) && 
+        checkForAllOnes(number, FRAC_END_INDEX, FRAC_END_INDEX)
+    );
 }
 
 
@@ -109,3 +163,4 @@ void classify (double number) {
         printf("Error.\n");
     }
 }
+
